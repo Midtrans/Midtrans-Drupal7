@@ -1,0 +1,174 @@
+<?php
+/**
+ * @file
+ * Midtrans payment method for Drupal Commerce for testing and development.
+ */
+
+// load library
+$rootplugin = dirname(__FILE__);
+require_once($rootplugin.'/libraries/veritrans-php/Veritrans.php'); 
+// require_once('libraries/veritrans-php/Veritrans.php');
+
+/**
+ * Implements hook_libraries_info().
+ * TODO: To be reomoved
+ */
+function commerce_veritrans_libraries_info() {
+  $libraries['veritrans'] = array(
+    'name' => 'PHP client library for Veritrans',
+    'vendor url' => 'https://github.com/veritrans/veritrans-php',
+    'download url' => 'https://github.com/veritrans/veritrans-php/archive/master.zip',
+    'path' => 'Veritrans',
+    'version arguments' => array(
+      'file' => 'README.md',
+      'pattern' => '/Veritrans (\d+)/',
+      'lines' => 6,
+    ),
+    'files' => array(
+      'php' => array(
+        'Config.php',
+        'Transaction.php',
+        'ApiRequestor.php',
+        'Notification.php',
+        'VtDirect.php',
+        'VtWeb.php',
+        'Sanitizer.php',
+        'Snap.php',
+        'SnapApiRequestor.php',
+      ),
+    ),
+  );
+
+  return $libraries;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function commerce_veritrans_menu() {
+  $items = array();
+
+  // Define an always accessible path to receive notification/IPNs.
+  $items['commerce_veritrans/ipn'] = array(
+    'page callback' => 'commerce_veritrans_process_ipn',
+    'page arguments' => array(),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Processes an incoming notification.
+ * @return bool
+ *   TRUE or FALSE indicating whether the notification was successfully processed or not.
+ */
+function commerce_veritrans_process_ipn() {
+  $payment = commerce_payment_method_instance_load('commerce_veritrans_web|commerce_payment_commerce_veritrans_web');
+  
+  Veritrans_Config::$serverKey = $payment['settings']['server_key'];
+  Veritrans_Config::$isProduction = ($payment['settings']['payment_mode'] == 'TEST') ? FALSE : TRUE;
+
+  $response = new Veritrans_Notification();
+
+  // error_log('exit point response '.print_r($response, TRUE)); //debugan
+  // Exit now if the $_POST was empty.
+  if (empty($response)) {
+    watchdog('commerce_veritrans', 'Notification URL accessed with no POST data submitted.', array(), WATCHDOG_WARNING);
+    return FALSE;
+  }
+
+  watchdog('commerce_veritrans', 'Response from Veritrans ! Response: !Response :.', array('!Response' => '<pre>' . print_r($response, TRUE) . '</pre>'), WATCHDOG_DEBUG);
+
+  if (isset($response) && !empty($response)) {
+    // Prepare a transaction object to log the API response.
+    $transaction = commerce_payment_transaction_new('commerce_veritrans_web', $response->order_id);
+    $order = commerce_order_load($response->order_id);
+    $transaction->uid = $order->uid;
+    $transaction->currency_code = $order->commerce_order_total[LANGUAGE_NONE][0]['currency_code'];
+    $transaction->instance_id = $order->data['payment_method'];
+    $transaction->remote_id = $response->transaction_id;
+    $transaction->remote_status = $response->transaction_status;
+    $transaction->payload = $response;
+    $transaction->amount = commerce_currency_decimal_to_amount($response->gross_amount / $payment['settings']['conversion'], $transaction->currency_code);
+    $transaction->message = $response->status_message;
+
+    // Set the transaction status based on SUCCESS or FAIL.
+    $transaction_status = $response->transaction_status;
+    $fraud = $response->fraud_status;
+    $payment_type = $response->payment_type;
+
+    // error_log('VTtransaction status: '.$transaction_status ); //debugan
+    // error_log('transaction->status: '.$transaction->status ); //debugan
+    if ($transaction_status == 'capture') {
+      if ($fraud == 'challenge') {
+        $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
+        commerce_order_status_update($order, $name = 'pending', $skip_save = FALSE, $revision = TRUE);
+      }
+      elseif ($fraud == 'accept') {
+        $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
+        commerce_order_status_update($order, $name = 'processing', $skip_save = FALSE, $revision = TRUE);
+      }
+    }
+    elseif ($transaction_status == 'settlement') {
+      // error_log($payment_type); //debugan
+      // error_log(print_r($response,true)); //debugan
+      if($payment_type != 'credit_card'){
+        $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
+        commerce_order_status_update($order, $name = 'processing', $skip_save = FALSE, $revision = TRUE);
+      } else{
+        // error_log('do nothing'); //debugan
+        return;
+      }
+    }
+    elseif ($transaction_status == 'pending') {
+        $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
+        commerce_order_status_update($order, $name = 'pending', $skip_save = FALSE, $revision = TRUE);
+    }
+    elseif ($transaction_status == 'cancel') {
+      
+      $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
+      $transaction->amount = -($transaction->amount);
+      commerce_order_status_update($order, $name = 'canceled', $skip_save = FALSE, $revision = TRUE);
+      $transaction->message = 'Cancel, payment canceled';
+      
+    }
+    elseif ($transaction_status == 'expire') {
+      
+      $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
+      $transaction->amount = -($transaction->amount);
+      commerce_order_status_update($order, $name = 'canceled', $skip_save = FALSE, $revision = TRUE);
+      $transaction->message = 'Expire, payment expired';
+      
+    }
+    elseif ($transaction_status == 'deny') {
+      $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
+      commerce_order_status_update($order, $name = 'canceled', $skip_save = FALSE, $revision = TRUE);
+      $transaction->message = 'Denied, payment by denied by Midtrans';
+    }else{
+      $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
+    }
+
+    // error_log('transaction->status: '.$transaction->status ); //debugan
+    // error_log('transaction: '.print_r($transaction,true) ); //debugan
+    commerce_payment_transaction_save($transaction);
+  }
+}
+
+/**
+ * Convert 2 digits coundry code to 3 digit country code.
+ *
+ * @param string $country_code
+ *   Country code which will be converted.
+ */
+function commerce_veritrans_convert_country_code($country_code) {
+  // 3 digits country codes.
+  module_load_include('inc', 'commerce_veritrans', 'commerce_veritrans.data');
+  $cc_three = commerce_veritrans_country_code();
+  // Check if country code exists.
+  if (isset($cc_three[$country_code]) && $cc_three[$country_code] != '') {
+    $country_code = $cc_three[$country_code];
+  }
+  return $country_code;
+}

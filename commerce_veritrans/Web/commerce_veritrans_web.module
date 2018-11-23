@@ -1,0 +1,408 @@
+<?php
+$rootplugin = dirname(dirname(__FILE__));
+require_once($rootplugin.'/libraries/veritrans-php/Veritrans.php'); 
+
+// require_once('/../libraries/veritrans-php/Veritrans.php');
+/**
+ * Implements hook_commerce_payment_method_info().
+ */
+
+function commerce_veritrans_web_commerce_payment_method_info() {
+  $payment_methods = array();
+
+  // if empty, set default
+  if(!isset($payment['settings']['payment_label'])){
+    $payment['settings']['payment_label'] = 'Payment via Midtrans';
+  }
+  else if($payment['settings']['payment_label'] == '' OR !$payment['settings']['payment_label']){
+    $payment['settings']['payment_label'] = 'Payment via Midtrans'; 
+  }
+
+  $payment_methods['commerce_veritrans_web'] = array(
+    'base' => 'commerce_veritrans_web',
+    'title' => t('Midtrans'),
+    'short_title' => t('MT-Snap'),
+    'display_title' => t($payment['settings']['payment_label']),
+    'description' => t('Midtrans Payment Gateway'),
+    'terminal' => TRUE,
+    'offsite' => TRUE,
+    'offsite_autoredirect' => FALSE,
+  );
+
+  return $payment_methods;
+}
+
+/**
+ * Payment method callback: settings form.
+ */
+function commerce_veritrans_web_settings_form( $settings = NULL) {
+  $form = array();
+  $settings = (array) $settings + array(
+    'conversion' => '',
+    'payment_label' => '',
+    'sandbox_server_key' => '',
+    'sandbox_client_key' => '',    
+    'production_server_key' => '',
+    'production_client_key' => '',    
+    'payment_type' => array(),
+    'is_sanitized' => '',
+    'is3ds' => '',
+    'save_card' => '',
+    'enable_redirect' => '',
+    'enabled_payments' => '',
+    'payment_mode' => '',
+    'custom_expiry' => '',
+    'custom_field' => '',
+    // 'payment_type_credit_card' => FALSE,
+  );
+
+  $form['payment_label'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Frontend Payment Text Label'),
+    '#description' => t('Frontend payment text label that will be displayed to your customer, default is "Payment via Veritrans"'),
+    '#default_value' => $settings['payment_label'],
+    '#required' => TRUE,
+  );
+
+  $form['payment_mode'] = array(
+    '#type' => 'select',
+    '#title' => t('Payment mode'),
+    '#description' => t('Use sandbox if you use veritrans sandbox MAP account for testing, and use production if you use production MAP account, don\'t forget to change serverkey according to sandbox or production account.'),
+    '#options' => array(
+      'LIVE' => t('Production mode'),
+      'TEST' => t('Sandbox mode'),
+    ),
+    '#default_value' => $settings['payment_mode'],
+  );
+
+  $form['production_server_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Server Key Production'),
+    '#description' => t('Input your <b>Production</b> Midtrans <b>Server Key</b>. Get the key <a href="https://dashboard.midtrans.com/settings/config_info" target="_blank">here</a>'),
+    '#default_value' => $settings['production_server_key'],
+    '#size' => 50,
+  );
+
+  $form['production_client_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Client Key Production'),
+    '#description' => t('Input your <b>Production</b> Midtrans <b>Client Key</b>. Get the key <a href="https://dashboard.midtrans.com/settings/config_info" target="_blank">here</a>'),
+    '#default_value' => $settings['production_client_key'],
+    '#size' => 50,
+  );
+
+  $form['sandbox_server_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Server Key Sandbox'),
+    '#description' => t('Input your <b>Sandbox</b> Midtrans <b>Server Key</b>. Get the key <a href="https://dashboard.sandbox.midtrans.com/settings/config_info" target="_blank">here</a>'),
+    '#default_value' => $settings['sandbox_server_key'],
+    '#size' => 50,
+  );
+
+  $form['sandbox_client_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Client Key Sandbox'),
+    '#description' => t('Input your <b>Sandbox</b> Midtrans <b>Client Key</b>. Get the key <a href="https://dashboard.sandbox.midtrans.com/settings/config_info" target="_blank">here</a>'),
+    '#default_value' => $settings['sandbox_client_key'],
+    '#size' => 50,
+  );
+
+  $form['is_sanitized'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Is Sanitized'),
+    '#default_value' => $settings['is_sanitized'],
+    '#description' => t('Payment is sanitized'),
+  );
+
+  $form['is3ds'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable 3D-Secure'),
+    '#default_value' => $settings['is3ds'],
+    '#description' => t('You must enable 3D Secure. Please contact us if you wish to disable this feature in the Production environment'),
+  );
+
+  $form['save_card'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable Save Card'),
+    '#default_value' => $settings['save_card'],
+    '#description' => t('This will allow your customer to save their card on the payment popup, for faster payment flow on the following purchase'),
+  );
+
+  $form['enable_redirect'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Redirect Payment Page'),
+    '#default_value' => $settings['enable_redirect'],
+    '#description' => t('This will redirect customer to Midtrans hosted payment page instead of popup payment page on your website. <br>Leave it disabled if you are not sure'),
+  );
+
+  $form['conversion'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Currency Conversion Rate to IDR'),
+    '#description' => t('Input currency conversion rate if you are not using IDR as default currency (example: <strong>"10000"</strong>). If you already use IDR as currency, please input <strong>"1"</strong>'),
+    '#default_value' => $settings['conversion'],
+    '#size' => 50,   
+    '#required' => TRUE,
+  );
+
+  $form['enabled_payments'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Allowed Payment Method'),
+    '#description' => t('Customize allowed payment method, separate payment method code with coma. e.g: bank_transfer,credit_card.<br>Leave it default if you are not sure.'),
+    '#default_value' => $settings['enabled_payments'],
+  );
+
+  $form['custom_expiry'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Custom Expiry'),
+    '#description' => t('This will allow you to set custom duration on how long the transaction available to be paid<br>example: 45 minutes'),
+    '#default_value' => $settings['custom_expiry'],
+  );
+
+  $form['custom_field'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Custom Fields'),
+    '#description' => t('This will allow you to set custom fields that will be displayed on Midtrans dashboard<br>Up to 3 fields are available, separate by coma (,)<br>Example: Order from web, Processed'),
+    '#default_value' => $settings['custom_field'],
+  );
+
+  return $form;
+}
+
+
+/**
+ * Payment method callback: redirect form.
+ */
+function commerce_veritrans_web_redirect_form($form, &$form_state, $order, $payment_method) {
+  // Return an error if the enabling action's settings haven't been configured.
+  // if ($settings['payment_mode'] == 'TEST'){
+  //   if (empty($payment_method['settings']['sandbox_server_key']) || empty($payment_method['settings']['sandbox_client_key'])) {
+  //     drupal_set_message(t('Midtrans is not configured for use. Please check the Midtrans Sandbox Server and Client Key.'), 'error');
+  //     return array();
+  //   }
+  // }
+  // else if ($settings['payment_mode'] == 'LIVE'){
+  //   if (empty($payment_method['settings']['production_server_key']) || empty($payment_method['settings']['production_client_key'])) {
+  //     drupal_set_message(t('Midtrans is not configured for use. Please check the Midtrans Production Server and Client Key.'), 'error');
+  //     return array();
+  //   }
+  // }
+
+
+  $settings = array(
+    // Return to the previous page when payment is canceled.
+    'cancel_return' => url('checkout/' . $order->order_id . '/payment/back/' . $order->data['payment_redirect_key'], array('absolute' => TRUE)),
+    // Return to the payment redirect page for processing successful payments.
+    'return' => url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array(
+      'absolute' => TRUE,
+    )),
+    // Specify the current payment method instance ID in the notify_url.
+    'pay_method' => $payment_method['instance_id'],
+  );
+$form1 = array();
+  
+  $button['#action'] = commerce_veritrans_web_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
+  
+
+  $button['actions'] = array('#type' => 'actions');
+  $button['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Proceed To Payment',  
+  );
+  
+  return $button;
+  return commerce_veritrans_web_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
+}
+
+/**
+ * 
+ * @param object $order
+ *   The fully loaded order being paid for.
+ * @param array $settings
+ */
+function commerce_veritrans_web_order_form($form, &$form_state, $order, $settings = array()) {
+  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+  $currency_code = $order_wrapper->commerce_order_total->currency_code->value();
+  // Ensure a default value for the payment_method setting.
+  $settings += array('payment_method' => '');
+
+  // Get the order total in the default currency. then multiply it by conversion rate
+  $order_total = $order_wrapper->commerce_order_total->amount->value();
+  $amount = commerce_currency_amount_to_decimal($order_total, $currency_code) * $settings['conversion'];
+
+  // Build a description for the order.
+  $items_details = array();
+
+  foreach ($order_wrapper->commerce_line_items as $line_item_wrapper) {
+    $item = array();
+    $line_item_price = $line_item_wrapper->commerce_unit_price->amount->value();
+    $item['id'] = $line_item_wrapper->line_item_id->value();
+    $item['quantity'] = round($line_item_wrapper->quantity->value(), 2);
+    $item['price'] = commerce_currency_amount_to_decimal($line_item_price, $currency_code) * $settings['conversion'];
+    $item['name'] = $line_item_wrapper->line_item_label->value();
+    $items_details[] = $item;
+  }
+
+  // libraries_load('veritrans');
+  if ($settings['payment_mode'] == 'TEST'){
+    // set sandbox credentials here
+    Veritrans_Config::$serverKey = $settings['sandbox_server_key'];
+    Veritrans_Config::$isProduction = FALSE;
+    $client_key = $settings['sandbox_client_key'];
+    $snap_script_url = "https://app.sandbox.midtrans.com/snap/snap.js";  
+  }
+  if ($settings['payment_mode'] == 'LIVE'){
+    // set production credentials here
+    Veritrans_Config::$serverKey = $settings['production_server_key'];
+    Veritrans_Config::$isProduction = TRUE;
+    $client_key = $settings['production_client_key'];
+    $snap_script_url = "https://app.midtrans.com/snap/snap.js";
+  }
+
+  // Uncomment to enable sanitization.
+  Veritrans_Config::$isSanitized = $settings['is_sanitized'] ? TRUE : FALSE;
+  // Uncomment to enable 3D-Secure.
+  Veritrans_Config::$is3ds = $settings['is3ds'] ? TRUE : FALSE;
+  // Prepare the billing address for use in the request.
+  $billing_address = $order_wrapper->commerce_customer_billing->commerce_customer_address->value();
+
+
+
+   $params = array(
+    'transaction_details' => array(
+      'order_id' => $order->order_id,
+      'gross_amount' => $amount,
+    ),
+     'callbacks' => array(
+    //     'finish' => $settings['return']
+            'error' => $settings['cancel_return'],
+       ),
+    'item_details' => $items_details,
+    'customer_details' => array(
+      'first_name' => $billing_address['first_name'],
+      'last_name' => $billing_address['last_name'],
+      'email' => drupal_substr($order->mail, 0, 100),
+      'phone' => $order_wrapper->commerce_customer_billing->commerce_veritrans_billing_phone->value(),
+      'billing_address' => array(
+        'first_name' => $billing_address['first_name'],
+        'last_name' => $billing_address['last_name'],
+        'address' => $billing_address['thoroughfare'],
+        'city' => $billing_address['locality'],
+        'postal_code' => $billing_address['postal_code'],
+        'country_code' => commerce_veritrans_convert_country_code($billing_address['country']),
+        'phone' => $order_wrapper->commerce_customer_billing->commerce_veritrans_billing_phone->value(),
+      ),
+    ),
+  );
+
+  if (strlen($settings['enabled_payments']) > 0){
+    $enable_payment = explode(',', $settings['enabled_payments']);
+    $params['enabled_payments'] = $enable_payment;
+  }
+
+  if ($settings['save_card'] && user_is_logged_in()){
+    $params['user_id'] = crypt( commerce_veritrans_convert_country_code($billing_address['country']).$order_wrapper->commerce_customer_billing->commerce_veritrans_billing_phone->value() , Veritrans_Config::$serverKey );
+    $params['credit_card']['save_card'] = true;          
+  }
+
+  $custom_expiry_params = explode(" ",$settings['custom_expiry']);
+    if ( !empty($custom_expiry_params[1]) && !empty($custom_expiry_params[0]) ){
+        $params['expiry'] = array(
+          'unit' => $custom_expiry_params[1], 
+          'duration'  => (int)$custom_expiry_params[0],
+        );
+      }
+
+  $custom_fields_params = explode(",",$settings['custom_field']);
+  if ( !empty($custom_fields_params[0]) ){
+          $params['custom_field1'] = $custom_fields_params[0];
+          $params['custom_field2'] = !empty($custom_fields_params[1]) ? $custom_fields_params[1] : null;
+          $params['custom_field3'] = !empty($custom_fields_params[2]) ? $custom_fields_params[2] : null;
+        }
+
+  watchdog('commerce_veritrans', 'Data to send veritrans: !Response :', array('!Response' => '<pre>' . print_r($params, TRUE) . '</pre>'), WATCHDOG_DEBUG);
+
+  try {
+    // Redirect to Veritrans VTWeb page.
+    $snapToken = Veritrans_Snap::getSnapToken($params); 
+    // $path = Veritrans_Snap::getRedirectUrl($params);
+    // drupal_goto($path);
+?>
+     <script src="<?php echo $snap_script_url; ?>" data-client-key="<?php echo $client_key; ?>"></script>
+    <script type="text/javascript">
+
+    var retryCount = 0;
+    var snapExecuted = false;
+    var intervalFunction = 0;
+     // Continously retry to execute SNAP popup if fail, with 1000ms delay between retry
+      intervalFunction = setInterval(function() {
+        try{
+          snap.pay('<?=$snapToken?>', 
+          {
+            skipOrderSummary : true,
+            onSuccess: function(result){
+              window.location = '<?php echo $settings['return'] ?>';
+            },
+
+            onPending: function(result){ 
+              window.location = '<?php echo $settings['return'] ?>';
+            },
+
+          });
+          snapExecuted = true; // if SNAP popup executed, change flag to stop the retry.
+        } catch (e){ 
+          retryCount++;
+          if(retryCount >= 10){
+            location.reload(); 
+            //payButton.innerHTML = "Loading..."; 
+            return;
+          }
+          console.log(e);
+          console.log("Snap not ready yet... Retrying in 1000ms!");
+        } 
+        finally {
+          if (snapExecuted) {
+            clearInterval(intervalFunction);
+          }
+        }
+      }, 1000);
+    </script>
+<?php
+}
+  // }
+   catch (Exception $e) {
+     drupal_set_message($e->getMessage(), 'error');
+     error_log($e->getMessage());
+   }
+
+}
+
+
+// /**
+//  * Implements hook_commerce_checkout_pane_info_alter().
+//  */
+// function commerce_veritrans_web_commerce_checkout_pane_info_alter(&$checkout_panes) {
+//   $order_id = arg(1);
+//     error_log('order id, '.$order_id); //debugan  
+//   $order = commerce_order_load($order_id);
+  
+//     $checkout_panes['checkout_completion_message']['callbacks']['checkout_form'] = 'commerce_veritrans_web_completion_message_pane_checkout_form';
+  
+// }
+
+
+// /**
+//  * Checkout pane callback: Wraps the completion message with a custom div.
+//  */
+// function commerce_veritrans_web_completion_message_pane_checkout_form($form, &$form_state, $checkout_pane, $order) {
+//   // Build the original message pane.
+//   $pane_form = commerce_checkout_completion_message_pane_checkout_form($form, $form_state, $checkout_pane, $order);
+//     error_log('order id, '.$order_id); //debugan  
+
+//     // Add and extra div.
+//     $pane_form['commerce_veritrans_web_header'] = array(
+//       '#markup' => '<div class="commerce-veritrans-header">' . 'lopop' . '</div>',
+//       '#weight' => -10,
+//     );
+  
+//   return $pane_form;
+// }
