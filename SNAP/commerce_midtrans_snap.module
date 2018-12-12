@@ -2,12 +2,11 @@
 $rootplugin = dirname(dirname(__FILE__));
 require_once($rootplugin.'/libraries/veritrans-php/Veritrans.php'); 
 
-// require_once('/../libraries/veritrans-php/Veritrans.php');
 /**
  * Implements hook_commerce_payment_method_info().
  */
 
-function commerce_veritrans_web_commerce_payment_method_info() {
+function commerce_midtrans_snap_commerce_payment_method_info() {
   $payment_methods = array();
 
   // if empty, set default
@@ -18,9 +17,9 @@ function commerce_veritrans_web_commerce_payment_method_info() {
     $payment['settings']['payment_label'] = 'Payment via Midtrans'; 
   }
 
-  $payment_methods['commerce_veritrans_web'] = array(
-    'base' => 'commerce_veritrans_web',
-    'title' => t('Midtrans'),
+  $payment_methods['commerce_midtrans_snap'] = array(
+    'base' => 'commerce_midtrans_snap',
+    'title' => t('Midtrans SNAP'),
     'short_title' => t('MT-Snap'),
     'display_title' => t($payment['settings']['payment_label']),
     'description' => t('Midtrans Payment Gateway'),
@@ -35,7 +34,7 @@ function commerce_veritrans_web_commerce_payment_method_info() {
 /**
  * Payment method callback: settings form.
  */
-function commerce_veritrans_web_settings_form( $settings = NULL) {
+function commerce_midtrans_snap_settings_form( $settings = NULL) {
   $form = array();
   $settings = (array) $settings + array(
     'conversion' => '',
@@ -59,15 +58,14 @@ function commerce_veritrans_web_settings_form( $settings = NULL) {
   $form['payment_label'] = array(
     '#type' => 'textfield',
     '#title' => t('Frontend Payment Text Label'),
-    '#description' => t('Frontend payment text label that will be displayed to your customer, default is "Payment via Veritrans"'),
+    '#description' => t('Frontend payment text label that will be displayed to your customer, default is "Payment via Midtrans"'),
     '#default_value' => $settings['payment_label'],
-    '#required' => TRUE,
   );
 
   $form['payment_mode'] = array(
     '#type' => 'select',
     '#title' => t('Payment mode'),
-    '#description' => t('Use sandbox if you use veritrans sandbox MAP account for testing, and use production if you use production MAP account, don\'t forget to change serverkey according to sandbox or production account.'),
+    '#description' => t('Use sandbox if you use midtrans sandbox MAP account for testing, and use production if you use production MAP account, don\'t forget to change serverkey according to sandbox or production account.'),
     '#options' => array(
       'LIVE' => t('Production mode'),
       'TEST' => t('Sandbox mode'),
@@ -117,7 +115,8 @@ function commerce_veritrans_web_settings_form( $settings = NULL) {
   $form['is3ds'] = array(
     '#type' => 'checkbox',
     '#title' => t('Enable 3D-Secure'),
-    '#default_value' => $settings['is3ds'],
+    //'#default_value' => $settings['is3ds'],
+    '#default_value' => true,    
     '#description' => t('You must enable 3D Secure. Please contact us if you wish to disable this feature in the Production environment'),
   );
 
@@ -140,6 +139,7 @@ function commerce_veritrans_web_settings_form( $settings = NULL) {
     '#title' => t('Currency Conversion Rate to IDR'),
     '#description' => t('Input currency conversion rate if you are not using IDR as default currency (example: <strong>"10000"</strong>). If you already use IDR as currency, please input <strong>"1"</strong>'),
     '#default_value' => $settings['conversion'],
+    '#default_value' => t('1'),
     '#size' => 50,   
     '#required' => TRUE,
   );
@@ -172,21 +172,8 @@ function commerce_veritrans_web_settings_form( $settings = NULL) {
 /**
  * Payment method callback: redirect form.
  */
-function commerce_veritrans_web_redirect_form($form, &$form_state, $order, $payment_method) {
-  // Return an error if the enabling action's settings haven't been configured.
-  // if ($settings['payment_mode'] == 'TEST'){
-  //   if (empty($payment_method['settings']['sandbox_server_key']) || empty($payment_method['settings']['sandbox_client_key'])) {
-  //     drupal_set_message(t('Midtrans is not configured for use. Please check the Midtrans Sandbox Server and Client Key.'), 'error');
-  //     return array();
-  //   }
-  // }
-  // else if ($settings['payment_mode'] == 'LIVE'){
-  //   if (empty($payment_method['settings']['production_server_key']) || empty($payment_method['settings']['production_client_key'])) {
-  //     drupal_set_message(t('Midtrans is not configured for use. Please check the Midtrans Production Server and Client Key.'), 'error');
-  //     return array();
-  //   }
-  // }
-
+function commerce_midtrans_snap_redirect_form($form, &$form_state, $order, $payment_method) {
+ 
 
   $settings = array(
     // Return to the previous page when payment is canceled.
@@ -200,7 +187,7 @@ function commerce_veritrans_web_redirect_form($form, &$form_state, $order, $paym
   );
 $form1 = array();
   
-  $button['#action'] = commerce_veritrans_web_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
+  $button['#action'] = commerce_midtrans_snap_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
   
 
   $button['actions'] = array('#type' => 'actions');
@@ -210,7 +197,7 @@ $form1 = array();
   );
   
   return $button;
-  return commerce_veritrans_web_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
+  return commerce_midtrans_snap_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
 }
 
 /**
@@ -219,7 +206,7 @@ $form1 = array();
  *   The fully loaded order being paid for.
  * @param array $settings
  */
-function commerce_veritrans_web_order_form($form, &$form_state, $order, $settings = array()) {
+function commerce_midtrans_snap_order_form($form, &$form_state, $order, $settings = array()) {
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
   $currency_code = $order_wrapper->commerce_order_total->currency_code->value();
   // Ensure a default value for the payment_method setting.
@@ -242,7 +229,7 @@ function commerce_veritrans_web_order_form($form, &$form_state, $order, $setting
     $items_details[] = $item;
   }
 
-  // libraries_load('veritrans');
+  // libraries_load('midtrans');
   if ($settings['payment_mode'] == 'TEST'){
     // set sandbox credentials here
     Veritrans_Config::$serverKey = $settings['sandbox_server_key'];
@@ -281,15 +268,15 @@ function commerce_veritrans_web_order_form($form, &$form_state, $order, $setting
       'first_name' => $billing_address['first_name'],
       'last_name' => $billing_address['last_name'],
       'email' => drupal_substr($order->mail, 0, 100),
-      'phone' => $order_wrapper->commerce_customer_billing->commerce_veritrans_billing_phone->value(),
+      'phone' => $order_wrapper->commerce_customer_billing->commerce_midtrans_billing_phone->value(),
       'billing_address' => array(
         'first_name' => $billing_address['first_name'],
         'last_name' => $billing_address['last_name'],
         'address' => $billing_address['thoroughfare'],
         'city' => $billing_address['locality'],
         'postal_code' => $billing_address['postal_code'],
-        'country_code' => commerce_veritrans_convert_country_code($billing_address['country']),
-        'phone' => $order_wrapper->commerce_customer_billing->commerce_veritrans_billing_phone->value(),
+        'country_code' => commerce_midtrans_convert_country_code($billing_address['country']),
+        'phone' => $order_wrapper->commerce_customer_billing->commerce_midtrans_billing_phone->value(),
       ),
     ),
   );
@@ -300,7 +287,7 @@ function commerce_veritrans_web_order_form($form, &$form_state, $order, $setting
   }
 
   if ($settings['save_card'] && user_is_logged_in()){
-    $params['user_id'] = crypt( commerce_veritrans_convert_country_code($billing_address['country']).$order_wrapper->commerce_customer_billing->commerce_veritrans_billing_phone->value() , Veritrans_Config::$serverKey );
+    $params['user_id'] = crypt( commerce_midtrans_convert_country_code($billing_address['country']).$order_wrapper->commerce_customer_billing->commerce_midtrans_billing_phone->value() , Veritrans_Config::$serverKey );
     $params['credit_card']['save_card'] = true;          
   }
 
@@ -319,10 +306,10 @@ function commerce_veritrans_web_order_form($form, &$form_state, $order, $setting
           $params['custom_field3'] = !empty($custom_fields_params[2]) ? $custom_fields_params[2] : null;
         }
 
-  watchdog('commerce_veritrans', 'Data to send veritrans: !Response :', array('!Response' => '<pre>' . print_r($params, TRUE) . '</pre>'), WATCHDOG_DEBUG);
+  watchdog('commerce_midtrans', 'Data to send midtrans: !Response :', array('!Response' => '<pre>' . print_r($params, TRUE) . '</pre>'), WATCHDOG_DEBUG);
 
   try {
-    // Redirect to Veritrans VTWeb page.
+    // Redirect to Midtrans VTWeb SNAP page.
     $snapToken = Veritrans_Snap::getSnapToken($params); 
     // $path = Veritrans_Snap::getRedirectUrl($params);
     // drupal_goto($path);

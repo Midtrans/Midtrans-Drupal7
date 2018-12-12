@@ -1,6 +1,6 @@
 name = Midtrans Snap
 description = Implements midtrans payment services for use with Drupal Commerce.
 package = Commerce (payment)
-dependencies[] = commerce_veritrans
+dependencies[] = commerce_midtrans
 
 core = 7.x

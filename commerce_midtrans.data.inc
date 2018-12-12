@@ -11,7 +11,7 @@
  * @return array
  *   Array keyed by currency with currency code, e.g. 'AF' => 'AFG'.
  */
-function commerce_veritrans_country_code() {
+function commerce_midtrans_country_code() {
 
   static $data = array(
     'AF' => 'AFG',
