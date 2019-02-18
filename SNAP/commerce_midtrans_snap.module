@@ -52,7 +52,6 @@ function commerce_midtrans_snap_settings_form( $settings = NULL) {
     'payment_mode' => '',
     'custom_expiry' => '',
     'custom_field' => '',
-    // 'payment_type_credit_card' => FALSE,
   );
 
   $form['payment_label'] = array(
@@ -168,7 +167,6 @@ function commerce_midtrans_snap_settings_form( $settings = NULL) {
   return $form;
 }
 
-
 /**
  * Payment method callback: redirect form.
  */
@@ -252,16 +250,14 @@ function commerce_midtrans_snap_order_form($form, &$form_state, $order, $setting
   // Prepare the billing address for use in the request.
   $billing_address = $order_wrapper->commerce_customer_billing->commerce_customer_address->value();
 
-
-
    $params = array(
     'transaction_details' => array(
       'order_id' => $order->order_id,
       'gross_amount' => $amount,
     ),
      'callbacks' => array(
-    //     'finish' => $settings['return']
-            'error' => $settings['cancel_return'],
+        'finish' => $settings['return'],
+        'error' => $settings['cancel_return'],
        ),
     'item_details' => $items_details,
     'customer_details' => array(
@@ -307,12 +303,11 @@ function commerce_midtrans_snap_order_form($form, &$form_state, $order, $setting
         }
 
   watchdog('commerce_midtrans', 'Data to send midtrans: !Response :', array('!Response' => '<pre>' . print_r($params, TRUE) . '</pre>'), WATCHDOG_DEBUG);
-
+    
+    if(!$settings['enable_redirect']){
   try {
     // Redirect to Midtrans VTWeb SNAP page.
     $snapToken = Veritrans_Snap::getSnapToken($params); 
-    // $path = Veritrans_Snap::getRedirectUrl($params);
-    // drupal_goto($path);
 ?>
      <script src="<?php echo $snap_script_url; ?>" data-client-key="<?php echo $client_key; ?>"></script>
     <script type="text/javascript">
@@ -355,15 +350,22 @@ function commerce_midtrans_snap_order_form($form, &$form_state, $order, $setting
     </script>
 <?php
 }
-  // }
    catch (Exception $e) {
      drupal_set_message($e->getMessage(), 'error');
      error_log($e->getMessage());
    }
-
+ }
+ else{
+  try{
+    $redirect_url = Veritrans_Snap::createTransaction($params)->redirect_url;
+    drupal_goto($redirect_url);
+  }
+   catch (Exception $e) {
+     drupal_set_message($e->getMessage(), 'error');
+     error_log($e->getMessage());
+   }
+ }
 }
-
-
 // /**
 //  * Implements hook_commerce_checkout_pane_info_alter().
 //  */
