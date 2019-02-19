@@ -1,7 +1,8 @@
 Midtrans Drupal Commerce Payment Gateway Module
 =======================================================
 
-Midtrans :heart: Drupal! Let your Drupal Commerce store integrated with Midtrans payment gateway.
+Midtrans :heart: Drupal!
+Let your Drupal Commerce store integrated with Midtrans payment gateway.
 
 ### Description
 This is the official Midtrans extension for the Drupal Commerce E-commerce platform.
