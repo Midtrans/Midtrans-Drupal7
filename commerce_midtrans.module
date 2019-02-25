@@ -65,11 +65,16 @@ function commerce_midtrans_menu() {
 function commerce_midtrans_process_ipn() {
   $raw_notification = json_decode(file_get_contents('php://input'), true);
   $field = $raw_notification['custom_field1'];
+
   if ($raw_notification['custom_field1'] == 'online_installment'){
     $payment = commerce_payment_method_instance_load('commerce_midtrans_online_installment|commerce_payment_commerce_midtrans_online_installment');
     $method = 'commerce_midtrans_online_installment';
   }
-  else{
+  else if ($raw_notification['custom_field1'] == 'offline_installment'){
+    $payment = commerce_payment_method_instance_load('commerce_midtrans_offline_installment|commerce_payment_commerce_midtrans_offline_installment');
+    $method = 'commerce_midtrans_offline_installment';
+  }
+  else {
     $payment = commerce_payment_method_instance_load('commerce_midtrans_snap|commerce_payment_commerce_midtrans_snap');
     $method = 'commerce_midtrans_snap';
   }
