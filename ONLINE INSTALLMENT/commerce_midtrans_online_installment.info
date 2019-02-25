@@ -1,0 +1,6 @@
+name = Midtrans Online Installment Snap
+description = Implements midtrans payment services ONLINE INSTALLMENT for use with Drupal Commerce.
+package = Commerce (payment)
+dependencies[] = commerce_midtrans
+
+core = 7.x

@@ -6,23 +6,23 @@ require_once($rootplugin.'/libraries/veritrans-php/Veritrans.php');
  * Implements hook_commerce_payment_method_info().
  */
 
-function commerce_midtrans_snap_commerce_payment_method_info() {
+function commerce_midtrans_online_installment_commerce_payment_method_info() {
   $payment_methods = array();
 
   // if empty, set default
   if(!isset($payment['settings']['payment_label'])){
-    $payment['settings']['payment_label'] = 'Payment via Midtrans';
+    $payment['settings']['payment_label'] = 'Online Installment Payment via Midtrans';
   }
   else if($payment['settings']['payment_label'] == '' OR !$payment['settings']['payment_label']){
-    $payment['settings']['payment_label'] = 'Payment via Midtrans'; 
+    $payment['settings']['payment_label'] = 'Online Installment Payment via Midtrans'; 
   }
 
-  $payment_methods['commerce_midtrans_snap'] = array(
-    'base' => 'commerce_midtrans_snap',
-    'title' => t('Midtrans SNAP'),
-    'short_title' => t('MT-Snap'),
+  $payment_methods['commerce_midtrans_online_installment'] = array(
+    'base' => 'commerce_midtrans_online_installment',
+    'title' => t('Midtrans Online Installment'),
+    'short_title' => t('MT-OnlineInstallment'),
     'display_title' => t($payment['settings']['payment_label']),
-    'description' => t('Midtrans Payment Gateway'),
+    'description' => t('Midtrans Online Installment Payment Gateway'),
     'terminal' => TRUE,
     'offsite' => TRUE,
     'offsite_autoredirect' => FALSE,
@@ -34,11 +34,12 @@ function commerce_midtrans_snap_commerce_payment_method_info() {
 /**
  * Payment method callback: settings form.
  */
-function commerce_midtrans_snap_settings_form( $settings = NULL) {
+function commerce_midtrans_online_installment_settings_form( $settings = NULL) {
   $form = array();
   $settings = (array) $settings + array(
-    'conversion' => '',
-    'payment_label' => '',
+    'conversion' => '1',
+    'payment_label' => 'Online Installment Payment via Midtrans',
+    'merchant_id' => '',
     'sandbox_server_key' => '',
     'sandbox_client_key' => '',    
     'production_server_key' => '',
@@ -48,16 +49,15 @@ function commerce_midtrans_snap_settings_form( $settings = NULL) {
     'is3ds' => '1',
     'save_card' => '',
     'enable_redirect' => '',
-    'enabled_payments' => '',
     'payment_mode' => '',
-    'custom_expiry' => '',
+    'min_amount' => '500000',
     'custom_field' => '',
   );
 
   $form['payment_label'] = array(
     '#type' => 'textfield',
     '#title' => t('Frontend Payment Text Label'),
-    '#description' => t('Frontend payment text label that will be displayed to your customer, default is "Payment via Midtrans"'),
+    '#description' => t('Frontend payment text label that will be displayed to your customer, default is "Online Installment Payment via Midtrans"'),
     '#default_value' => $settings['payment_label'],
   );
 
@@ -72,20 +72,21 @@ function commerce_midtrans_snap_settings_form( $settings = NULL) {
     '#default_value' => $settings['payment_mode'],
   );
 
-  $form['production_server_key'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Server Key Production'),
-    '#description' => t('Input your <b>Production</b> Midtrans <b>Server Key</b>. Get the key <a href="https://dashboard.midtrans.com/settings/config_info" target="_blank">here</a>'),
-    '#default_value' => $settings['production_server_key'],
-    '#size' => 50,
-  );
-
   $form['merchant_id'] = array(
     '#type' => 'textfield',
     '#title' => t('Merchant ID'),
     '#description' => t('Input your Midtrans Merchant ID (e.g M012345). Get the ID <a href="https://dashboard.sandbox.midtrans.com/settings/config_info" target="_blank">here</a>'),
     '#default_value' => $settings['merchant_id'],
     '#size' => 10,
+    '#required' => TRUE,
+  );
+
+  $form['production_server_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Server Key Production'),
+    '#description' => t('Input your <b>Production</b> Midtrans <b>Server Key</b>. Get the key <a href="https://dashboard.midtrans.com/settings/config_info" target="_blank">here</a>'),
+    '#default_value' => $settings['production_server_key'],
+    '#size' => 50,
   );
 
   $form['production_client_key'] = array(
@@ -146,29 +147,21 @@ function commerce_midtrans_snap_settings_form( $settings = NULL) {
     '#title' => t('Currency Conversion Rate to IDR'),
     '#description' => t('Input currency conversion rate if you are not using IDR as default currency (example: <strong>"10000"</strong>). If you already use IDR as currency, please input <strong>"1"</strong>'),
     '#default_value' => $settings['conversion'],
-    '#default_value' => t('1'),
     '#size' => 50,   
     '#required' => TRUE,
   );
 
-  $form['enabled_payments'] = array(
+  $form['min_amount'] = array(
     '#type' => 'textfield',
-    '#title' => t('Allowed Payment Method'),
-    '#description' => t('Customize allowed payment method, separate payment method code with coma. e.g: bank_transfer,credit_card.<br>Leave it default if you are not sure.'),
-    '#default_value' => $settings['enabled_payments'],
-  );
-
-  $form['custom_expiry'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Custom Expiry'),
-    '#description' => t('This will allow you to set custom duration on how long the transaction available to be paid<br>example: 45 minutes'),
-    '#default_value' => $settings['custom_expiry'],
+    '#title' => t('Minimal Transaction Amount'),
+    '#description' => t('Minimal transaction amount allowed to be paid with installment (amount in IDR, without comma or period) example: 500000 </br> if the transaction amount is below this value, customer will be redirected to Credit Card fullpayment page.'),
+    '#default_value' => $settings['min_amount'],
   );
 
   $form['custom_field'] = array(
     '#type' => 'textfield',
     '#title' => t('Custom Fields'),
-    '#description' => t('This will allow you to set custom fields that will be displayed on Midtrans dashboard<br>Up to 3 fields are available, separate by coma (,)<br>Example: Order from web, Processed'),
+    '#description' => t('This will allow you to set custom fields that will be displayed on Midtrans dashboard<br>Up to 2 fields are available, separate by coma (,)<br>Example: Order from web, Processed'),
     '#default_value' => $settings['custom_field'],
   );
 
@@ -178,9 +171,8 @@ function commerce_midtrans_snap_settings_form( $settings = NULL) {
 /**
  * Payment method callback: redirect form.
  */
-function commerce_midtrans_snap_redirect_form($form, &$form_state, $order, $payment_method) {
+function commerce_midtrans_online_installment_redirect_form($form, &$form_state, $order, $payment_method) {
  
-
   $settings = array(
     // Return to the previous page when payment is canceled.
     'cancel_return' => url('checkout/' . $order->order_id . '/payment/back/' . $order->data['payment_redirect_key'], array('absolute' => TRUE)),
@@ -193,8 +185,7 @@ function commerce_midtrans_snap_redirect_form($form, &$form_state, $order, $paym
   );
 $form1 = array();
   
-  $button['#action'] = commerce_midtrans_snap_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
-  
+  $button['#action'] = commerce_midtrans_online_installment_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
 
   $button['actions'] = array('#type' => 'actions');
   $button['actions']['submit'] = array(
@@ -203,7 +194,7 @@ $form1 = array();
   );
   
   return $button;
-  return commerce_midtrans_snap_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
+  return commerce_midtrans_online_installment_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
 }
 
 /**
@@ -212,7 +203,7 @@ $form1 = array();
  *   The fully loaded order being paid for.
  * @param array $settings
  */
-function commerce_midtrans_snap_order_form($form, &$form_state, $order, $settings = array()) {
+function commerce_midtrans_online_installment_order_form($form, &$form_state, $order, $settings = array()) {
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
   $currency_code = $order_wrapper->commerce_order_total->currency_code->value();
   // Ensure a default value for the payment_method setting.
@@ -265,6 +256,7 @@ function commerce_midtrans_snap_order_form($form, &$form_state, $order, $setting
       'order_id' => $order->order_id,
       'gross_amount' => $amount,
     ),
+    'enabled_payments' => ['credit_card'],
      'callbacks' => array(
         'finish' => $settings['return'],
         'error' => $settings['cancel_return'],
@@ -285,31 +277,32 @@ function commerce_midtrans_snap_order_form($form, &$form_state, $order, $setting
         'phone' => $order_wrapper->commerce_customer_billing->commerce_midtrans_billing_phone->value(),
       ),
     ),
+    'custom_field1' => 'online_installment',
   );
 
-  if (strlen($settings['enabled_payments']) > 0){
-    $enable_payment = explode(',', $settings['enabled_payments']);
-    $params['enabled_payments'] = $enable_payment;
-  }
-
+  //add installment params
+  if($amount >= $settings['min_amount']){
+        $terms = array(3,6,9,12,15,18,21,24,27,30,33,36);
+        $params['credit_card']['installment']['required'] = true;
+        $params['credit_card']['installment']['terms'] = array(
+            'bri' => $terms, 
+            'maybank' => $terms,
+            'bri' => $terms,
+            'bni' => $terms, 
+            'mandiri' => $terms, 
+            'cimb' => $terms,
+            'bca' => $terms
+        );      
+  };
   if ($settings['save_card'] && user_is_logged_in()){
     $params['user_id'] = crypt( commerce_midtrans_convert_country_code($billing_address['country']).$order_wrapper->commerce_customer_billing->commerce_midtrans_billing_phone->value() , Veritrans_Config::$serverKey );
     $params['credit_card']['save_card'] = true;          
   }
 
-  $custom_expiry_params = explode(" ",$settings['custom_expiry']);
-    if ( !empty($custom_expiry_params[1]) && !empty($custom_expiry_params[0]) ){
-        $params['expiry'] = array(
-          'unit' => $custom_expiry_params[1], 
-          'duration'  => (int)$custom_expiry_params[0],
-        );
-      }
-
   $custom_fields_params = explode(",",$settings['custom_field']);
   if ( !empty($custom_fields_params[0]) ){
-          $params['custom_field1'] = $custom_fields_params[0];
-          $params['custom_field2'] = !empty($custom_fields_params[1]) ? $custom_fields_params[1] : null;
-          $params['custom_field3'] = !empty($custom_fields_params[2]) ? $custom_fields_params[2] : null;
+          $params['custom_field2'] = $custom_fields_params[0];
+          $params['custom_field3'] = !empty($custom_fields_params[1]) ? $custom_fields_params[1] : null;
         }
 
   watchdog('commerce_midtrans', 'Data to send midtrans: !Response :', array('!Response' => '<pre>' . print_r($params, TRUE) . '</pre>'), WATCHDOG_DEBUG);
@@ -349,7 +342,7 @@ function commerce_midtrans_snap_order_form($form, &$form_state, $order, $setting
         var MID_MERCHANT_ID = "<?=$settings["merchant_id"];?>";
         var MID_CMS_NAME = "drupal 7";
         var MID_CMS_VERSION = "<?=VERSION?>";
-        var MID_PLUGIN_NAME = "fullpayment";
+        var MID_PLUGIN_NAME = "online installment";
         var MID_PLUGIN_VERSION = "2.0.3";
 
     var retryCount = 0;
