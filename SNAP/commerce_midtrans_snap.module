@@ -348,7 +348,7 @@ function commerce_midtrans_snap_order_form($form, &$form_state, $order, $setting
         var MID_CMS_NAME = "drupal 7";
         var MID_CMS_VERSION = "<?=VERSION?>";
         var MID_PLUGIN_NAME = "fullpayment";
-        var MID_PLUGIN_VERSION = "2.0.5";
+        var MID_PLUGIN_VERSION = "7.x-2.0.5";
 
     var retryCount = 0;
     var snapExecuted = false;
