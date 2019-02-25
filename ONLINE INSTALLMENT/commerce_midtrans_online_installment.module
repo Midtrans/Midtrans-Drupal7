@@ -44,7 +44,6 @@ function commerce_midtrans_online_installment_settings_form( $settings = NULL) {
     'sandbox_client_key' => '',    
     'production_server_key' => '',
     'production_client_key' => '',    
-    'payment_type' => array(),
     'is_sanitized' => '',
     'is3ds' => '1',
     'save_card' => '',
@@ -123,8 +122,7 @@ function commerce_midtrans_online_installment_settings_form( $settings = NULL) {
   $form['is3ds'] = array(
     '#type' => 'checkbox',
     '#title' => t('Enable 3D-Secure'),
-    //'#default_value' => $settings['is3ds'],
-    '#default_value' => true,    
+    '#default_value' => $settings['is3ds'],
     '#description' => t('You must enable 3D Secure. Please contact us if you wish to disable this feature in the Production environment'),
   );
 
@@ -343,7 +341,7 @@ function commerce_midtrans_online_installment_order_form($form, &$form_state, $o
         var MID_CMS_NAME = "drupal 7";
         var MID_CMS_VERSION = "<?=VERSION?>";
         var MID_PLUGIN_NAME = "online installment";
-        var MID_PLUGIN_VERSION = "2.0.4";
+        var MID_PLUGIN_VERSION = "2.0.5";
 
     var retryCount = 0;
     var snapExecuted = false;
