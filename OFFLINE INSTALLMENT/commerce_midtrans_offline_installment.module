@@ -39,6 +39,7 @@ function commerce_midtrans_offline_installment_settings_form( $settings = NULL) 
   $settings = (array) $settings + array(
     'conversion' => '1',
     'payment_label' => 'Offline Installment Payment via Midtrans',
+    'payment_mode' => '',
     'merchant_id' => '',
     'sandbox_server_key' => '',
     'sandbox_client_key' => '',    
@@ -122,8 +123,7 @@ function commerce_midtrans_offline_installment_settings_form( $settings = NULL) 
   $form['is3ds'] = array(
     '#type' => 'checkbox',
     '#title' => t('Enable 3D-Secure'),
-    //'#default_value' => $settings['is3ds'],
-    '#default_value' => true,    
+    '#default_value' => $settings['is3ds'],
     '#description' => t('You must enable 3D Secure. Please contact us if you wish to disable this feature in the Production environment'),
   );
 
@@ -356,7 +356,7 @@ function commerce_midtrans_offline_installment_order_form($form, &$form_state, $
         var MID_CMS_NAME = "drupal 7";
         var MID_CMS_VERSION = "<?=VERSION?>";
         var MID_PLUGIN_NAME = "offline installment";
-        var MID_PLUGIN_VERSION = "2.0.4";
+        var MID_PLUGIN_VERSION = "2.0.5";
 
     var retryCount = 0;
     var snapExecuted = false;
