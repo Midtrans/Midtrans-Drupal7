@@ -6,23 +6,23 @@ require_once($rootplugin.'/libraries/veritrans-php/Veritrans.php');
  * Implements hook_commerce_payment_method_info().
  */
 
-function commerce_midtrans_online_installment_commerce_payment_method_info() {
+function commerce_midtrans_offline_installment_commerce_payment_method_info() {
   $payment_methods = array();
 
   // if empty, set default
   if(!isset($payment['settings']['payment_label'])){
-    $payment['settings']['payment_label'] = 'Online Installment Payment via Midtrans';
+    $payment['settings']['payment_label'] = 'Offline Installment Payment via Midtrans';
   }
   else if($payment['settings']['payment_label'] == '' OR !$payment['settings']['payment_label']){
-    $payment['settings']['payment_label'] = 'Online Installment Payment via Midtrans'; 
+    $payment['settings']['payment_label'] = 'Offline Installment Payment via Midtrans'; 
   }
 
-  $payment_methods['commerce_midtrans_online_installment'] = array(
-    'base' => 'commerce_midtrans_online_installment',
-    'title' => t('Midtrans Online Installment'),
-    'short_title' => t('MT-OnlineInstallment'),
+  $payment_methods['commerce_midtrans_offline_installment'] = array(
+    'base' => 'commerce_midtrans_offline_installment',
+    'title' => t('Midtrans Offline Installment'),
+    'short_title' => t('MT-OfflineInstallment'),
     'display_title' => t($payment['settings']['payment_label']),
-    'description' => t('Midtrans Online Installment Payment Gateway'),
+    'description' => t('Midtrans Offline Installment Payment Gateway'),
     'terminal' => TRUE,
     'offsite' => TRUE,
     'offsite_autoredirect' => FALSE,
@@ -34,30 +34,29 @@ function commerce_midtrans_online_installment_commerce_payment_method_info() {
 /**
  * Payment method callback: settings form.
  */
-function commerce_midtrans_online_installment_settings_form( $settings = NULL) {
+function commerce_midtrans_offline_installment_settings_form( $settings = NULL) {
   $form = array();
   $settings = (array) $settings + array(
     'conversion' => '1',
-    'payment_label' => 'Online Installment Payment via Midtrans',
+    'payment_label' => 'Offline Installment Payment via Midtrans',
     'merchant_id' => '',
     'sandbox_server_key' => '',
     'sandbox_client_key' => '',    
     'production_server_key' => '',
     'production_client_key' => '',    
-    'payment_type' => array(),
     'is_sanitized' => '',
     'is3ds' => '1',
     'save_card' => '',
     'enable_redirect' => '',
-    'payment_mode' => '',
     'min_amount' => '500000',
+    'bin_number' => '',
     'custom_field' => '',
   );
 
   $form['payment_label'] = array(
     '#type' => 'textfield',
     '#title' => t('Frontend Payment Text Label'),
-    '#description' => t('Frontend payment text label that will be displayed to your customer, default is "Online Installment Payment via Midtrans"'),
+    '#description' => t('Frontend payment text label that will be displayed to your customer, default is "Offline Installment Payment via Midtrans"'),
     '#default_value' => $settings['payment_label'],
   );
 
@@ -158,6 +157,13 @@ function commerce_midtrans_online_installment_settings_form( $settings = NULL) {
     '#default_value' => $settings['min_amount'],
   );
 
+  $form['bin_number'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Allowed CC BINs'),
+    '#description' => t('Fill with CC BIN numbers (or bank name) that you want to allow to use this payment button. </br> Separate BIN number with coma Example: 4,5,4811,bni,mandiri'),
+    '#default_value' => $settings['bin_number'],
+  );
+
   $form['custom_field'] = array(
     '#type' => 'textfield',
     '#title' => t('Custom Fields'),
@@ -171,7 +177,7 @@ function commerce_midtrans_online_installment_settings_form( $settings = NULL) {
 /**
  * Payment method callback: redirect form.
  */
-function commerce_midtrans_online_installment_redirect_form($form, &$form_state, $order, $payment_method) {
+function commerce_midtrans_offline_installment_redirect_form($form, &$form_state, $order, $payment_method) {
  
   $settings = array(
     // Return to the previous page when payment is canceled.
@@ -185,7 +191,7 @@ function commerce_midtrans_online_installment_redirect_form($form, &$form_state,
   );
 $form1 = array();
   
-  $button['#action'] = commerce_midtrans_online_installment_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
+  $button['#action'] = commerce_midtrans_offline_installment_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
 
   $button['actions'] = array('#type' => 'actions');
   $button['actions']['submit'] = array(
@@ -194,7 +200,7 @@ $form1 = array();
   );
   
   return $button;
-  return commerce_midtrans_online_installment_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
+  return commerce_midtrans_offline_installment_order_form($form, $form_state, $order, $payment_method['settings'] + $settings);
 }
 
 /**
@@ -203,7 +209,7 @@ $form1 = array();
  *   The fully loaded order being paid for.
  * @param array $settings
  */
-function commerce_midtrans_online_installment_order_form($form, &$form_state, $order, $settings = array()) {
+function commerce_midtrans_offline_installment_order_form($form, &$form_state, $order, $settings = array()) {
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
   $currency_code = $order_wrapper->commerce_order_total->currency_code->value();
   // Ensure a default value for the payment_method setting.
@@ -277,7 +283,7 @@ function commerce_midtrans_online_installment_order_form($form, &$form_state, $o
         'phone' => $order_wrapper->commerce_customer_billing->commerce_midtrans_billing_phone->value(),
       ),
     ),
-    'custom_field1' => 'online_installment',
+    'custom_field1' => 'offline_installment',
   );
 
   //add installment params
@@ -294,6 +300,13 @@ function commerce_midtrans_online_installment_order_form($form, &$form_state, $o
             'bca' => $terms
         );      
   };
+
+  // add bin params
+  if (strlen($settings['bin_number']) > 0){
+    $bins = explode(',', $settings['bin_number']);
+    $params['credit_card']['whitelist_bins'] = $bins;
+  }
+
   if ($settings['save_card'] && user_is_logged_in()){
     $params['user_id'] = crypt( commerce_midtrans_convert_country_code($billing_address['country']).$order_wrapper->commerce_customer_billing->commerce_midtrans_billing_phone->value() , Veritrans_Config::$serverKey );
     $params['credit_card']['save_card'] = true;          
@@ -342,7 +355,7 @@ function commerce_midtrans_online_installment_order_form($form, &$form_state, $o
         var MID_MERCHANT_ID = "<?=$settings["merchant_id"];?>";
         var MID_CMS_NAME = "drupal 7";
         var MID_CMS_VERSION = "<?=VERSION?>";
-        var MID_PLUGIN_NAME = "online installment";
+        var MID_PLUGIN_NAME = "offline installment";
         var MID_PLUGIN_VERSION = "2.0.4";
 
     var retryCount = 0;
