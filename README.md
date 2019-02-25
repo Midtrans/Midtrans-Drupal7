@@ -8,7 +8,7 @@ Let your Drupal Commerce store integrated with Midtrans payment gateway.
 This is the official Midtrans extension for the Drupal Commerce E-commerce platform.
 
 ### Version
-7.x-1.1 
+7.x-2.0.5
 (for Drupal v 7.x)
 
 ### Requirements
