@@ -63,7 +63,16 @@ function commerce_midtrans_menu() {
  *   TRUE or FALSE indicating whether the notification was successfully processed or not.
  */
 function commerce_midtrans_process_ipn() {
-  $payment = commerce_payment_method_instance_load('commerce_midtrans_snap|commerce_payment_commerce_midtrans_snap');
+  $raw_notification = json_decode(file_get_contents('php://input'), true);
+  $field = $raw_notification['custom_field1'];
+  if ($raw_notification['custom_field1'] == 'online_installment'){
+    $payment = commerce_payment_method_instance_load('commerce_midtrans_online_installment|commerce_payment_commerce_midtrans_online_installment');
+    $method = 'commerce_midtrans_online_installment';
+  }
+  else{
+    $payment = commerce_payment_method_instance_load('commerce_midtrans_snap|commerce_payment_commerce_midtrans_snap');
+    $method = 'commerce_midtrans_snap';
+  }
 
   if ($payment['settings']['payment_mode'] == 'TEST'){
     // set sandbox credentials here
@@ -89,7 +98,7 @@ function commerce_midtrans_process_ipn() {
 
   if (isset($response) && !empty($response)) {
     // Prepare a transaction object to log the API response.
-    $transaction = commerce_payment_transaction_new('commerce_midtrans_snap', $response->order_id);
+    $transaction = commerce_payment_transaction_new($method, $response->order_id);
     $order = commerce_order_load($response->order_id);
     $transaction->uid = $order->uid;
     $transaction->currency_code = $order->commerce_order_total[LANGUAGE_NONE][0]['currency_code'];
