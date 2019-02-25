@@ -341,7 +341,7 @@ function commerce_midtrans_online_installment_order_form($form, &$form_state, $o
         var MID_CMS_NAME = "drupal 7";
         var MID_CMS_VERSION = "<?=VERSION?>";
         var MID_PLUGIN_NAME = "online installment";
-        var MID_PLUGIN_VERSION = "2.0.5";
+        var MID_PLUGIN_VERSION = "7.x-2.0.5";
 
     var retryCount = 0;
     var snapExecuted = false;
