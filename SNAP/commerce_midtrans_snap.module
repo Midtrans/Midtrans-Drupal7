@@ -10,18 +10,20 @@ function commerce_midtrans_snap_commerce_payment_method_info() {
   $payment_methods = array();
 
   // if empty, set default
-  if(!isset($payment['settings']['payment_label'])){
-    $payment['settings']['payment_label'] = 'Payment via Midtrans';
-  }
-  else if($payment['settings']['payment_label'] == '' OR !$payment['settings']['payment_label']){
-    $payment['settings']['payment_label'] = 'Payment via Midtrans'; 
-  }
+  // if(!isset($payment['settings']['payment_label'])){
+  //   $payment['settings']['payment_label'] = 'Online Payment via Midtrans';
+  //   error_log('pertama');
+  // } 
+  //   if($payment['settings']['payment_label'] == '' OR !$payment['settings']['payment_label']){
+  //   $payment['settings']['payment_label'] = 'Online Payment via Midtrans';
+  //   error_log('kedua');
+  // }
 
   $payment_methods['commerce_midtrans_snap'] = array(
     'base' => 'commerce_midtrans_snap',
     'title' => t('Midtrans SNAP'),
     'short_title' => t('MT-Snap'),
-    'display_title' => t($payment['settings']['payment_label']),
+    'display_title' => t('Online Payment via Midtrans'),
     'description' => t('Midtrans Payment Gateway'),
     'terminal' => TRUE,
     'offsite' => TRUE,
@@ -38,7 +40,7 @@ function commerce_midtrans_snap_settings_form( $settings = NULL) {
   $form = array();
   $settings = (array) $settings + array(
     'conversion' => '',
-    'payment_label' => '',
+    // 'payment_label' => '',
     'sandbox_server_key' => '',
     'sandbox_client_key' => '',    
     'production_server_key' => '',
@@ -53,12 +55,12 @@ function commerce_midtrans_snap_settings_form( $settings = NULL) {
     'custom_field' => '',
   );
 
-  $form['payment_label'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Frontend Payment Text Label'),
-    '#description' => t('Frontend payment text label that will be displayed to your customer, default is "Payment via Midtrans"'),
-    '#default_value' => $settings['payment_label'],
-  );
+  // $form['payment_label'] = array(
+  //   '#type' => 'textfield',
+  //   '#title' => t('Frontend Payment Text Label'),
+  //   '#description' => t('Frontend payment text label that will be displayed to your customer, default is "Online Payment via Midtrans"'),
+  //   '#default_value' => $settings['payment_label'],
+  // );
 
   $form['payment_mode'] = array(
     '#type' => 'select',
@@ -348,7 +350,7 @@ function commerce_midtrans_snap_order_form($form, &$form_state, $order, $setting
         var MID_CMS_NAME = "drupal 7";
         var MID_CMS_VERSION = "<?=VERSION?>";
         var MID_PLUGIN_NAME = "fullpayment";
-        var MID_PLUGIN_VERSION = "7.x-2.0.5";
+        var MID_PLUGIN_VERSION = "7.x-2.0.6";
 
     var retryCount = 0;
     var snapExecuted = false;

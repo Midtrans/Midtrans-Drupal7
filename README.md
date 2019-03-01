@@ -8,7 +8,7 @@ Let your Drupal Commerce store integrated with Midtrans payment gateway.
 This is the official Midtrans extension for the Drupal Commerce E-commerce platform.
 
 ### Version
-7.x-1.1 
+7.x-2.0.6
 (for Drupal v 7.x)
 
 ### Requirements
@@ -17,7 +17,7 @@ The following plugin is tested under following environment:
 * PHP v5.6.x or greater
 * MySQL version 5.0 or greater
 * Drupal v7.x
-* [Drupal Commerce 7.x-1.11 ](http://www.drupal.org/project/commerce)
+* [Drupal Commerce 7.x-1.x ](http://www.drupal.org/project/commerce)
 
 #### Installation Process
 The manual installation method involves downloading our feature-rich plugin and uploading it to your webserver via your favourite FTP application.
