@@ -10,18 +10,18 @@ function commerce_midtrans_offline_installment_commerce_payment_method_info() {
   $payment_methods = array();
 
   // if empty, set default
-  if(!isset($payment['settings']['payment_label'])){
-    $payment['settings']['payment_label'] = 'Offline Installment Payment via Midtrans';
-  }
-  else if($payment['settings']['payment_label'] == '' OR !$payment['settings']['payment_label']){
-    $payment['settings']['payment_label'] = 'Offline Installment Payment via Midtrans'; 
-  }
+  // if(!isset($payment['settings']['payment_label'])){
+  //   $payment['settings']['payment_label'] = 'Offline Installment Payment via Midtrans';
+  // }
+  // else if($payment['settings']['payment_label'] == '' OR !$payment['settings']['payment_label']){
+  //   $payment['settings']['payment_label'] = 'Offline Installment Payment via Midtrans'; 
+  // }
 
   $payment_methods['commerce_midtrans_offline_installment'] = array(
     'base' => 'commerce_midtrans_offline_installment',
     'title' => t('Midtrans Offline Installment'),
     'short_title' => t('MT-OfflineInstallment'),
-    'display_title' => t($payment['settings']['payment_label']),
+    'display_title' => t('Installment Payment for any Bank via Midtrans'),
     'description' => t('Midtrans Offline Installment Payment Gateway'),
     'terminal' => TRUE,
     'offsite' => TRUE,
@@ -38,7 +38,7 @@ function commerce_midtrans_offline_installment_settings_form( $settings = NULL) 
   $form = array();
   $settings = (array) $settings + array(
     'conversion' => '1',
-    'payment_label' => 'Offline Installment Payment via Midtrans',
+    // 'payment_label' => '',
     'payment_mode' => '',
     'merchant_id' => '',
     'sandbox_server_key' => '',
@@ -49,17 +49,19 @@ function commerce_midtrans_offline_installment_settings_form( $settings = NULL) 
     'is3ds' => '1',
     'save_card' => '',
     'enable_redirect' => '',
+    'installment_term' => '3,6,12',
+    'acquiring_bank' => '',
     'min_amount' => '500000',
     'bin_number' => '',
     'custom_field' => '',
   );
 
-  $form['payment_label'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Frontend Payment Text Label'),
-    '#description' => t('Frontend payment text label that will be displayed to your customer, default is "Offline Installment Payment via Midtrans"'),
-    '#default_value' => $settings['payment_label'],
-  );
+  // $form['payment_label'] = array(
+  //   '#type' => 'textfield',
+  //   '#title' => t('Frontend Payment Text Label'),
+  //   '#description' => t('Frontend payment text label that will be displayed to your customer, default is "Offline Installment Payment via Midtrans"'),
+  //   '#default_value' => $settings['payment_label'],
+  // );
 
   $form['payment_mode'] = array(
     '#type' => 'select',
@@ -148,6 +150,20 @@ function commerce_midtrans_offline_installment_settings_form( $settings = NULL) 
     '#default_value' => $settings['conversion'],
     '#size' => 50,   
     '#required' => TRUE,
+  );
+
+  $form['installment_term'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Installment Terms'),
+    '#description' => t('nput the desired Installment Terms. Separate with coma. e.g: 3,6,12'),
+    '#default_value' => $settings['installment_term'],
+  );
+
+  $form['acquiring_bank'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Acquiring Bank'),
+    '#description' => t('Input the desired acquiring bank. e.g: bni </br>Leave blank if you are not sure'),
+    '#default_value' => $settings['acquiring_bank'],
   );
 
   $form['min_amount'] = array(
@@ -288,17 +304,19 @@ function commerce_midtrans_offline_installment_order_form($form, &$form_state, $
 
   //add installment params
   if($amount >= $settings['min_amount']){
-        $terms = array(3,6,9,12,15,18,21,24,27,30,33,36);
-        $params['credit_card']['installment']['required'] = true;
-        $params['credit_card']['installment']['terms'] = array(
-            'bri' => $terms, 
-            'maybank' => $terms,
-            'bri' => $terms,
-            'bni' => $terms, 
-            'mandiri' => $terms, 
-            'cimb' => $terms,
-            'bca' => $terms
-        );      
+    // Build bank & terms array
+    $termsStr = explode(',', $settings['installment_term']);
+    $terms = array();
+    foreach ($termsStr as $termStr) {
+      $terms[] = (int)$termStr;
+    };
+    if (strlen($settings['acquiring_bank']) > 0){
+      $params['credit_card']['bank'] = $settings['acquiring_bank'];
+    }
+
+    // Add installment param
+    $params['credit_card']['installment']['required'] = true;
+    $params['credit_card']['installment']['terms'] = array('offline' => $terms);      
   };
 
   // add bin params
@@ -323,7 +341,8 @@ function commerce_midtrans_offline_installment_order_form($form, &$form_state, $
     if(!$settings['enable_redirect']){
   try {
     // Redirect to Midtrans VTWeb SNAP page.
-    $snapToken = Veritrans_Snap::getSnapToken($params); 
+    $snapToken = Veritrans_Snap::getSnapToken($params);
+    error_log(print_r($params,true)); //debugan  
 ?>
     <!-- start Mixpanel -->
     <script type="text/javascript">(function(c,a){if(!a.__SV){var b=window;try{var d,m,j,k=b.location,f=k.hash;d=function(a,b){return(m=a.match(RegExp(b+"=([^&]*)")))?m[1]:null};f&&d(f,"state")&&(j=JSON.parse(decodeURIComponent(d(f,"state"))),"mpeditor"===j.action&&(b.sessionStorage.setItem("_mpcehash",f),history.replaceState(j.desiredHash||"",c.title,k.pathname+k.search)))}catch(n){}var l,h;window.mixpanel=a;a._i=[];a.init=function(b,d,g){function c(b,i){var a=i.split(".");2==a.length&&(b=b[a[0]],i=a[1]);b[i]=function(){b.push([i].concat(Array.prototype.slice.call(arguments,0)))}}var e=a;"undefined"!==typeof g?e=a[g]=[]:g="mixpanel";e.people=e.people||[];e.toString=function(b){var a="mixpanel";"mixpanel"!==g&&(a+="."+g);b||(a+=" (stub)");return a};e.people.toString=function(){return e.toString(1)+".people (stub)"};l="disable time_event track track_pageview track_links track_forms track_with_groups add_group set_group remove_group register register_once alias unregister identify name_tag set_config reset opt_in_tracking opt_out_tracking has_opted_in_tracking has_opted_out_tracking clear_opt_in_out_tracking people.set people.set_once people.unset people.increment people.append people.union people.track_charge people.clear_charges people.delete_user people.remove".split(" ");for(h=0;h<l.length;h++)c(e,l[h]);var f="set set_once union unset remove delete".split(" ");e.get_group=function(){function a(c){b[c]=function(){call2_args=arguments;call2=[c].concat(Array.prototype.slice.call(call2_args,0));e.push([d,call2])}}for(var b={},d=["get_group"].concat(Array.prototype.slice.call(arguments,0)),c=0;c<f.length;c++)a(f[c]);return b};a._i.push([b,d,g])};a.__SV=1.2;b=c.createElement("script");b.type="text/javascript";b.async=!0;b.src="undefined"!==typeof MIXPANEL_CUSTOM_LIB_URL?MIXPANEL_CUSTOM_LIB_URL:"file:"===c.location.protocol&&"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js".match(/^\/\//)?"https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js":"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";d=c.getElementsByTagName("script")[0];d.parentNode.insertBefore(b,d)}})(document,window.mixpanel||[]);mixpanel.init("<?php echo $mixpanel_key ?>");</script> 
@@ -356,7 +375,7 @@ function commerce_midtrans_offline_installment_order_form($form, &$form_state, $
         var MID_CMS_NAME = "drupal 7";
         var MID_CMS_VERSION = "<?=VERSION?>";
         var MID_PLUGIN_NAME = "offline installment";
-        var MID_PLUGIN_VERSION = "7.x-2.0.5";
+        var MID_PLUGIN_VERSION = "7.x-2.0.6";
 
     var retryCount = 0;
     var snapExecuted = false;
