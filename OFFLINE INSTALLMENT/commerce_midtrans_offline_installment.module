@@ -49,6 +49,7 @@ function commerce_midtrans_offline_installment_settings_form( $settings = NULL) 
     'is3ds' => '1',
     'save_card' => '',
     'enable_redirect' => '',
+    'installment_term' => '3,6,12',
     'acquiring_bank' => '',
     'min_amount' => '500000',
     'bin_number' => '',
@@ -149,6 +150,13 @@ function commerce_midtrans_offline_installment_settings_form( $settings = NULL) 
     '#default_value' => $settings['conversion'],
     '#size' => 50,   
     '#required' => TRUE,
+  );
+
+  $form['installment_term'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Installment Terms'),
+    '#description' => t('nput the desired Installment Terms. Separate with coma. e.g: 3,6,12'),
+    '#default_value' => $settings['installment_term'],
   );
 
   $form['acquiring_bank'] = array(
@@ -296,16 +304,20 @@ function commerce_midtrans_offline_installment_order_form($form, &$form_state, $
 
   //add installment params
   if($amount >= $settings['min_amount']){
-        $terms = array(3,6,9,12,15,18,21,24,27,30,33,36);
-        $params['credit_card']['installment']['required'] = true;
-        $params['credit_card']['installment']['terms'] = array(
-            'offline' => $terms
-        );      
-  };
+    // Build bank & terms array
+    $termsStr = explode(',', $settings['installment_term']);
+    $terms = array();
+    foreach ($termsStr as $termStr) {
+      $terms[] = (int)$termStr;
+    };
+    if (strlen($settings['acquiring_bank']) > 0){
+      $params['credit_card']['bank'] = $settings['acquiring_bank'];
+    }
 
-  if (strlen($settings['acquiring_bank']) > 0){
-    $params['credit_card']['bank'] = $settings['acquiring_bank'];
-  }
+    // Add installment param
+    $params['credit_card']['installment']['required'] = true;
+    $params['credit_card']['installment']['terms'] = array('offline' => $terms);      
+  };
 
   // add bin params
   if (strlen($settings['bin_number']) > 0){
