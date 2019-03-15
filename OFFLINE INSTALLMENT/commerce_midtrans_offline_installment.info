@@ -2,5 +2,9 @@ name = Midtrans Offline Installment Snap
 description = Implements midtrans payment services OFFLINE INSTALLMENT for use with Drupal Commerce.
 package = Commerce (payment)
 dependencies[] = commerce_midtrans
-
 core = 7.x
+
+; Information
+version = "7.x-2.0.6"
+core = "7.x"
+project = "commerce_midtrans"
