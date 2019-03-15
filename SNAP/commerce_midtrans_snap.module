@@ -39,7 +39,7 @@ function commerce_midtrans_snap_commerce_payment_method_info() {
 function commerce_midtrans_snap_settings_form( $settings = NULL) {
   $form = array();
   $settings = (array) $settings + array(
-    'conversion' => '',
+    'conversion' => '1',
     // 'payment_label' => '',
     'sandbox_server_key' => '',
     'sandbox_client_key' => '',    
@@ -87,6 +87,7 @@ function commerce_midtrans_snap_settings_form( $settings = NULL) {
     '#description' => t('Input your Midtrans Merchant ID (e.g M012345). Get the ID <a href="https://dashboard.sandbox.midtrans.com/settings/config_info" target="_blank">here</a>'),
     '#default_value' => $settings['merchant_id'],
     '#size' => 10,
+    '#required' => TRUE,
   );
 
   $form['production_client_key'] = array(
@@ -213,6 +214,10 @@ $form1 = array();
  * @param array $settings
  */
 function commerce_midtrans_snap_order_form($form, &$form_state, $order, $settings = array()) {
+  //get module info
+  $info = system_get_info('module','commerce_midtrans_snap');
+  $version = $info['version'];
+
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
   $currency_code = $order_wrapper->commerce_order_total->currency_code->value();
   // Ensure a default value for the payment_method setting.
@@ -350,7 +355,7 @@ function commerce_midtrans_snap_order_form($form, &$form_state, $order, $setting
         var MID_CMS_NAME = "drupal 7";
         var MID_CMS_VERSION = "<?=VERSION?>";
         var MID_PLUGIN_NAME = "fullpayment";
-        var MID_PLUGIN_VERSION = "7.x-2.0.6";
+        var MID_PLUGIN_VERSION = "<?=$version?>";
 
     var retryCount = 0;
     var snapExecuted = false;
@@ -412,6 +417,7 @@ function commerce_midtrans_snap_order_form($form, &$form_state, $order, $setting
    }
  }
 }
+
 // /**
 //  * Implements hook_commerce_checkout_pane_info_alter().
 //  */

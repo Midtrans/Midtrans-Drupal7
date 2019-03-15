@@ -155,7 +155,7 @@ function commerce_midtrans_offline_installment_settings_form( $settings = NULL) 
   $form['installment_term'] = array(
     '#type' => 'textfield',
     '#title' => t('Installment Terms'),
-    '#description' => t('nput the desired Installment Terms. Separate with coma. e.g: 3,6,12'),
+    '#description' => t('Input the desired Installment Terms. Separate with coma. e.g: 3,6,12'),
     '#default_value' => $settings['installment_term'],
   );
 
@@ -226,6 +226,10 @@ $form1 = array();
  * @param array $settings
  */
 function commerce_midtrans_offline_installment_order_form($form, &$form_state, $order, $settings = array()) {
+  //get module info
+  $info = system_get_info('module','commerce_midtrans_snap');
+  $version = $info['version'];
+
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
   $currency_code = $order_wrapper->commerce_order_total->currency_code->value();
   // Ensure a default value for the payment_method setting.
@@ -375,7 +379,7 @@ function commerce_midtrans_offline_installment_order_form($form, &$form_state, $
         var MID_CMS_NAME = "drupal 7";
         var MID_CMS_VERSION = "<?=VERSION?>";
         var MID_PLUGIN_NAME = "offline installment";
-        var MID_PLUGIN_VERSION = "7.x-2.0.6";
+        var MID_PLUGIN_VERSION = "<?=$version?>";
 
     var retryCount = 0;
     var snapExecuted = false;
