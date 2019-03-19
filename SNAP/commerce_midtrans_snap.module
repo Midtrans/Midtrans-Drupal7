@@ -370,7 +370,7 @@ function commerce_midtrans_snap_order_form($form, &$form_state, $order, $setting
             },
             onPending: function(result){
               MixpanelTrackResult(MID_SNAP_TOKEN, MID_MERCHANT_ID, MID_CMS_NAME, MID_CMS_VERSION, MID_PLUGIN_NAME, MID_PLUGIN_VERSION, 'pending', result);
-              window.location = '<?php echo $settings['return'] ?>';
+              window.location = '<?php echo $settings['return'];?>?'+result.pdf_url;
             },
             onError: function(result){
               MixpanelTrackResult(MID_SNAP_TOKEN, MID_MERCHANT_ID, MID_CMS_NAME, MID_CMS_VERSION, MID_PLUGIN_NAME, MID_PLUGIN_VERSION, 'error', result);
@@ -418,32 +418,72 @@ function commerce_midtrans_snap_order_form($form, &$form_state, $order, $setting
  }
 }
 
-// /**
-//  * Implements hook_commerce_checkout_pane_info_alter().
-//  */
-// function commerce_veritrans_web_commerce_checkout_pane_info_alter(&$checkout_panes) {
-//   $order_id = arg(1);
-//     error_log('order id, '.$order_id); //debugan  
-//   $order = commerce_order_load($order_id);
-  
-//     $checkout_panes['checkout_completion_message']['callbacks']['checkout_form'] = 'commerce_veritrans_web_completion_message_pane_checkout_form';
-  
+/**
+ * Implements hook_entity_view().
+ *
+ * Add info pdf url on the Order View at the user page.
+ */
+// function commerce_midtrans_snap_entity_view($entity, $type, $view_mode, $langcode) {
+//   if ($type == 'commerce_order') {
+//     if ($entity->status == 'pending' && $entity->data['payment_method'] == 'commerce_midtrans_snap|commerce_payment_commerce_midtrans_snap') {
+//       $entity->content['commerce_midtrans_snap_header'] = array(
+//         '#markup' => '<div class="commerce-midtrans-snap-header">' . 'Please complete your payment as intructed <a href="' . $_SESSION['pdf'] . '" target="_blank">here</a>.</div>',
+//         '#weight' => -11,
+//       );
+//     }
+//   }
 // }
 
-
-// /**
-//  * Checkout pane callback: Wraps the completion message with a custom div.
-//  */
-// function commerce_veritrans_web_completion_message_pane_checkout_form($form, &$form_state, $checkout_pane, $order) {
-//   // Build the original message pane.
-//   $pane_form = commerce_checkout_completion_message_pane_checkout_form($form, $form_state, $checkout_pane, $order);
-//     error_log('order id, '.$order_id); //debugan  
-
-//     // Add and extra div.
-//     $pane_form['commerce_veritrans_web_header'] = array(
-//       '#markup' => '<div class="commerce-veritrans-header">' . 'lopop' . '</div>',
-//       '#weight' => -10,
-//     );
-  
-//   return $pane_form;
+// function commerce_midtrans_make_header($order) {
+//   $output = unserialize($order->data['commerce_midtrans']);
+//   error_log('unserialize, '.$output['value']); //debugan
+//   // error_log('order, '.$order->data['commerce_midtrans']); //debugan 
+//   return $output['value'];
 // }
+
+/**
+ * Implements hook_commerce_checkout_pane_info_alter().
+ */
+function commerce_midtrans_snap_commerce_checkout_pane_info_alter(&$checkout_panes) {
+  if (arg(2) == 'payment' && arg(3) == 'return'){
+      $order_id = arg(1);
+      $order = commerce_order_load($order_id);
+    if(array_key_exists("payment_method",$order->data) && $order->data['payment_method'] == 'commerce_midtrans_snap|commerce_payment_commerce_midtrans_snap'){
+      $uri = request_uri();
+      $pdf = substr($uri,strrpos($uri, '?')+1);      
+      if (substr($pdf, -3) == 'pdf') {
+        $_SESSION['pdf'] = $pdf;
+      }
+      else if (substr($pdf,-9) == 'undefined') {
+        $_SESSION['pdf'] = '';
+      }
+    }
+  }
+  if (strrpos(request_uri(), 'complete')){
+    $checkout_panes['checkout_completion_message']['callbacks']['checkout_form'] = 'commerce_midtrans_snap_completion_message_pane_checkout_form';
+  }
+}
+
+/**
+ * Checkout pane callback: Wraps the completion message with a custom div.
+ */
+function commerce_midtrans_snap_completion_message_pane_checkout_form($form, &$form_state, $checkout_pane, $order) {
+  // Build the original message pane.
+  $pane_form = commerce_checkout_completion_message_pane_checkout_form($form, $form_state, $checkout_pane, $order);
+  if ($order->status == 'pending' && $order->data['payment_method'] == 'commerce_midtrans_snap|commerce_payment_commerce_midtrans_snap') {
+    // Add and extra div.
+    if ($_SESSION['pdf'] != ''){
+      $pane_form['commerce_midtrans_snap_header'] = array(
+        '#markup' => '<div class="commerce-midtrans-snap-header">' . 'Please complete your payment as intructed <a href="' . $_SESSION['pdf'] . '" target="_blank">here</a>.</div>',
+        '#weight' => -10,
+      );
+    }
+    else{
+      $pane_form['commerce_midtrans_snap_header'] = array(
+        '#markup' => '<div class="commerce-midtrans-snap-header">' . 'Please complete your payment.' . '</div>',
+        '#weight' => -10,
+      );
+    }
+  }
+  return $pane_form;
+}
