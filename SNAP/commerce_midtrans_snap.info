@@ -6,6 +6,6 @@ dependencies[] = commerce_midtrans
 core = 7.x
 
 ; Information
-version = "7.x-2.0.7"
+version = "7.x-2.0.6"
 core = "7.x"
 project = "commerce_midtrans"
