@@ -124,11 +124,11 @@ function commerce_midtrans_process_ipn() {
     if ($transaction_status == 'capture') {
       if ($fraud == 'challenge') {
         $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
-        commerce_order_status_update($order, $name = 'pending', $skip_save = FALSE, $revision = TRUE);
+        commerce_order_status_update($order, $name = 'pending', $skip_save = FALSE, $revision = TRUE, t('Midtrans-' . $payment_type . ': challenged payment'));
       }
       elseif ($fraud == 'accept') {
         $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
-        commerce_order_status_update($order, $name = 'processing', $skip_save = FALSE, $revision = TRUE);
+        commerce_order_status_update($order, $name = 'processing', $skip_save = FALSE, $revision = TRUE, t('Midtrans-' . $payment_type . ': payment completed'));
       }
     }
     elseif ($transaction_status == 'settlement') {
@@ -136,7 +136,7 @@ function commerce_midtrans_process_ipn() {
       // error_log(print_r($response,true)); //debugan
       if($payment_type != 'credit_card'){
         $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
-        commerce_order_status_update($order, $name = 'processing', $skip_save = FALSE, $revision = TRUE);
+        commerce_order_status_update($order, $name = 'processing', $skip_save = FALSE, $revision = TRUE, t('Midtrans-' . $payment_type . ': payment completed'));
       } else{
         // error_log('do nothing'); //debugan
         return;
@@ -144,13 +144,13 @@ function commerce_midtrans_process_ipn() {
     }
     elseif ($transaction_status == 'pending') {
         $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
-        commerce_order_status_update($order, $name = 'pending', $skip_save = FALSE, $revision = TRUE);
+        commerce_order_status_update($order, $name = 'pending', $skip_save = FALSE, $revision = TRUE, t('Midtrans-'. $payment_type . ': awaiting payment'));
     }
     elseif ($transaction_status == 'cancel') {
       
       $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
       $transaction->amount = -($transaction->amount);
-      commerce_order_status_update($order, $name = 'canceled', $skip_save = FALSE, $revision = TRUE);
+      commerce_order_status_update($order, $name = 'canceled', $skip_save = FALSE, $revision = TRUE, t('Midtrans-' . $payment_type . ': cancelled payment'));
       $transaction->message = 'Cancel, payment canceled';
       
     }
@@ -158,14 +158,14 @@ function commerce_midtrans_process_ipn() {
       
       $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
       $transaction->amount = -($transaction->amount);
-      commerce_order_status_update($order, $name = 'canceled', $skip_save = FALSE, $revision = TRUE);
+      commerce_order_status_update($order, $name = 'canceled', $skip_save = FALSE, $revision = TRUE, t('Midtrans-' . $payment_type . ': expired payment'));
       $transaction->message = 'Expire, payment expired';
       
     }
     elseif ($transaction_status == 'deny') {
       $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
-      commerce_order_status_update($order, $name = 'canceled', $skip_save = FALSE, $revision = TRUE);
-      $transaction->message = 'Denied, payment by denied by Midtrans';
+      commerce_order_status_update($order, $name = 'canceled', $skip_save = FALSE, $revision = TRUE, t('Midtrans-' . $payment_type . ': denied payment'));
+      $transaction->message = 'Denied, payment denied by Midtrans';
     }else{
       $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
     }
