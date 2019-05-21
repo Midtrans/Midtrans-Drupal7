@@ -73,14 +73,6 @@ function commerce_midtrans_snap_settings_form( $settings = NULL) {
     '#default_value' => $settings['payment_mode'],
   );
 
-  $form['production_server_key'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Server Key Production'),
-    '#description' => t('Input your <b>Production</b> Midtrans <b>Server Key</b>. Get the key <a href="https://dashboard.midtrans.com/settings/config_info" target="_blank">here</a>'),
-    '#default_value' => $settings['production_server_key'],
-    '#size' => 50,
-  );
-
   $form['merchant_id'] = array(
     '#type' => 'textfield',
     '#title' => t('Merchant ID'),
@@ -90,6 +82,14 @@ function commerce_midtrans_snap_settings_form( $settings = NULL) {
     '#required' => TRUE,
   );
 
+  $form['production_server_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Server Key Production'),
+    '#description' => t('Input your <b>Production</b> Midtrans <b>Server Key</b>. Get the key <a href="https://dashboard.midtrans.com/settings/config_info" target="_blank">here</a>'),
+    '#default_value' => $settings['production_server_key'],
+    '#size' => 50,
+  );
+  
   $form['production_client_key'] = array(
     '#type' => 'textfield',
     '#title' => t('Client Key Production'),
