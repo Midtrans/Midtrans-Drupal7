@@ -6,33 +6,32 @@
 
 // load library
 $rootplugin = dirname(__FILE__);
-require_once($rootplugin.'/libraries/veritrans-php/Veritrans.php'); 
+require_once($rootplugin.'/libraries/midtrans-php/Midtrans.php'); 
 
 /**
  * Implements hook_libraries_info().
  */
 function commerce_midtrans_libraries_info() {
-  $libraries['veritrans'] = array(
-    'name' => 'PHP client library for Veritrans',
-    'vendor url' => 'https://github.com/veritrans/veritrans-php',
-    'download url' => 'https://github.com/veritrans/veritrans-php/archive/master.zip',
-    'path' => 'Veritrans',
+  $libraries['midtrans'] = array(
+    'name' => 'PHP client library for Midtrans',
+    'vendor url' => 'https://github.com/Midtrans/midtrans-php',
+    'download url' => 'https://github.com/Midtrans/midtrans-php/archive/master.zip',
+    'path' => 'Midtrans',
     'version arguments' => array(
       'file' => 'README.md',
-      'pattern' => '/Veritrans (\d+)/',
+      'pattern' => '/Midtrans (\d+)/',
       'lines' => 6,
     ),
     'files' => array(
       'php' => array(
         'ApiRequestor.php',        
         'Config.php',
+        'CoreApi.php',
         'Notification.php',
         'Sanitizer.php',   
         'Snap.php',             
         'SnapApiRequestor.php',
         'Transaction.php',
-        'VtDirect.php',
-        'VtWeb.php',
       ),
     ),
   );
@@ -81,16 +80,16 @@ function commerce_midtrans_process_ipn() {
 
   if ($payment['settings']['payment_mode'] == 'TEST'){
     // set sandbox credentials here
-    Veritrans_Config::$serverKey = $payment['settings']['sandbox_server_key'];
-    Veritrans_Config::$isProduction = FALSE;
+    \Midtrans\Config::$serverKey = $payment['settings']['sandbox_server_key'];
+    \Midtrans\Config::$isProduction = FALSE;
   }
   else if ($payment['settings']['payment_mode'] == 'LIVE'){
     // set production credentials here
-    Veritrans_Config::$serverKey = $payment['settings']['production_server_key'];
-    Veritrans_Config::$isProduction = TRUE;
+    \Midtrans\Config::$serverKey = $payment['settings']['production_server_key'];
+    \Midtrans\Config::$isProduction = TRUE;
   }
 
-  $response = new Veritrans_Notification();
+  $response = new \Midtrans\Notification();
 
   // error_log('exit point response '.print_r($response, TRUE)); //debugan
   // Exit now if the $_POST was empty.
