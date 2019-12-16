@@ -1,6 +1,6 @@
 <?php
 $rootplugin = dirname(dirname(__FILE__));
-require_once($rootplugin.'/libraries/veritrans-php/Veritrans.php'); 
+require_once($rootplugin.'/libraries/midtrans-php/Midtrans.php'); 
 
 /**
  * Implements hook_commerce_payment_method_info().
@@ -255,25 +255,25 @@ function commerce_midtrans_offline_installment_order_form($form, &$form_state, $
   // libraries_load('midtrans');
   if ($settings['payment_mode'] == 'TEST'){
     // set sandbox credentials here
-    Veritrans_Config::$serverKey = $settings['sandbox_server_key'];
-    Veritrans_Config::$isProduction = FALSE;
+    \Midtrans\Config::$serverKey = $settings['sandbox_server_key'];
+    \Midtrans\Config::$isProduction = FALSE;
     $client_key = $settings['sandbox_client_key'];
     $snap_script_url = "https://app.sandbox.midtrans.com/snap/snap.js";
     $mixpanel_key = "9dcba9b440c831d517e8ff1beff40bd9";
   }
   if ($settings['payment_mode'] == 'LIVE'){
     // set production credentials here
-    Veritrans_Config::$serverKey = $settings['production_server_key'];
-    Veritrans_Config::$isProduction = TRUE;
+    \Midtrans\Config::$serverKey = $settings['production_server_key'];
+    \Midtrans\Config::$isProduction = TRUE;
     $client_key = $settings['production_client_key'];
     $snap_script_url = "https://app.midtrans.com/snap/snap.js";
     $mixpanel_key = "17253088ed3a39b1e2bd2cbcfeca939a";
   }
 
   // Uncomment to enable sanitization.
-  Veritrans_Config::$isSanitized = $settings['is_sanitized'] ? TRUE : FALSE;
+  \Midtrans\Config::$isSanitized = $settings['is_sanitized'] ? TRUE : FALSE;
   // Uncomment to enable 3D-Secure.
-  Veritrans_Config::$is3ds = $settings['is3ds'] ? TRUE : FALSE;
+  \Midtrans\Config::$is3ds = $settings['is3ds'] ? TRUE : FALSE;
   // Prepare the billing address for use in the request.
   $billing_address = $order_wrapper->commerce_customer_billing->commerce_customer_address->value();
 
@@ -330,7 +330,7 @@ function commerce_midtrans_offline_installment_order_form($form, &$form_state, $
   }
 
   if ($settings['save_card'] && user_is_logged_in()){
-    $params['user_id'] = crypt( commerce_midtrans_convert_country_code($billing_address['country']).$order_wrapper->commerce_customer_billing->commerce_midtrans_billing_phone->value() , Veritrans_Config::$serverKey );
+    $params['user_id'] = crypt( commerce_midtrans_convert_country_code($billing_address['country']).$order_wrapper->commerce_customer_billing->commerce_midtrans_billing_phone->value() , \Midtrans\Config::$serverKey );
     $params['credit_card']['save_card'] = true;          
   }
 
@@ -345,7 +345,7 @@ function commerce_midtrans_offline_installment_order_form($form, &$form_state, $
     if(!$settings['enable_redirect']){
   try {
     // Redirect to Midtrans VTWeb SNAP page.
-    $snapToken = Veritrans_Snap::getSnapToken($params);
+    $snapToken = \Midtrans\Snap::getSnapToken($params);
     error_log(print_r($params,true)); //debugan  
 ?>
     <!-- start Mixpanel -->
@@ -432,7 +432,7 @@ function commerce_midtrans_offline_installment_order_form($form, &$form_state, $
  }
  else{
   try{
-    $redirect_url = Veritrans_Snap::createTransaction($params)->redirect_url;
+    $redirect_url = \Midtrans\Snap::createTransaction($params)->redirect_url;
     drupal_goto($redirect_url);
   }
    catch (Exception $e) {
